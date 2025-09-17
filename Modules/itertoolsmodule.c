@@ -3575,6 +3575,51 @@ count_repr(PyObject *op)
                                 lz->long_cnt, lz->long_step);
 }
 
+
+static int
+count_contains(PyObject* self, PyObject* arg)
+{
+    if (!PyLong_Check(arg))
+    {
+        return 0;
+    }
+
+    countobject* lz = countobject_CAST(self);
+
+    long step = PyLong_AsLong(lz->long_step);
+    long start = lz->cnt == PY_SSIZE_T_MAX ? PyLong_AsLong(lz->long_cnt) : lz->cnt;
+
+    long n = PyLong_AsLong(arg);
+
+    if (step > 0)
+    {
+        if (n < start)
+        {
+            return 0;
+        }
+    }
+    else if (step < 0)
+    {
+        if (n > start)
+        {
+            return 0;
+        }
+    }
+    else  // if (step == 0)  // must be true
+    {
+        return n == start;
+    }
+
+    return (n - start) % step == 0;
+  /*  int ret;
+    Py_BEGIN_CRITICAL_SECTION(self);
+    ret = _Py_bytes_contains(PyByteArray_AS_STRING(self),
+        PyByteArray_GET_SIZE(self),
+        arg);
+    Py_END_CRITICAL_SECTION();
+    return ret;*/
+}
+
 static PyType_Slot count_slots[] = {
     {Py_tp_dealloc, count_dealloc},
     {Py_tp_repr, count_repr},
@@ -3585,6 +3630,7 @@ static PyType_Slot count_slots[] = {
     {Py_tp_iternext, count_next},
     {Py_tp_new, itertools_count},
     {Py_tp_free, PyObject_GC_Del},
+    {Py_sq_contains, count_contains},
     {0, NULL},
 };
 
